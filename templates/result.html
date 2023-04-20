@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Image Classifier</title>
+</head>
+<body>
+    <h1>Image Classification Result</h1>
+    <h2>Original Image</h2>
+    <img src="{{ image }}" alt="Uploaded image" width="300">
+    <h2>Grad-CAM Result</h2>
+    <img src="{{ result }}" alt="Grad-CAM result" width="300">
+    <br>
+    <a href="{{ url_for('index') }}">Go back</a>
+</body>
+</html>

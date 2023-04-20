@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Image Classifier</title>
+</head>
+<body>
+    <h1>Upload an image for classification</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <label for="problem">Problem:</label>
+        <select id="problem" name="problem">
+            <option value="classification">Classification</option>
+            <option value="object_detection">Object Detection</option>
+            <option value="segmentation">Segmentation</option>
+        </select>
+        <br><br>
+
+        <label for="model">AI Model:</label>
+        <select id="model" name="model">
+            <!-- Default options for Classification -->
+            <option value="vgg16">VGG16</option>
+        </select>
+        <br><br>
+
+        <label for="explainable_ai">Explainable AI Method:</label>
+        <select id="explainable_ai" name="explainable_ai">
+            <!-- Default options for Classification -->
+            <option value="gradcam">GradCAM</option>
+        </select>
+        <br><br>
+
+        <input type="file" name="file" accept="image/*">
+        <button type="submit">Upload</button>
+    </form>
+
+    <script>
+        const problemDropdown = document.getElementById("problem");
+        const modelDropdown = document.getElementById("model");
+        const explainableAiDropdown = document.getElementById("explainable_ai");
+
+        const modelOptions = {
+            classification: ["VGG16"],
+            object_detection: ["YOLOX", "YOLOv4"],
+            segmentation: ["UNet", "ResNet50"]
+        };
+
+        const explainableAiOptions = {
+            classification: ["GradCAM"],
+            object_detection: ["D-RISE"],
+            segmentation: ["ScoreMap", "GradCAM"]
+        };
+
+        problemDropdown.addEventListener("change", function () {
+            const selectedProblem = problemDropdown.value;
+
+            // Update AI Model dropdown
+            modelDropdown.innerHTML = "";
+            for (const model of modelOptions[selectedProblem]) {
+                const option = document.createElement("option");
+                option.text = model;
+                option.value = model.toLowerCase();
+                modelDropdown.add(option);
+            }
+
+            // Update Explainable AI Method dropdown
+            explainableAiDropdown.innerHTML = "";
+            for (const method of explainableAiOptions[selectedProblem]) {
+                const option = document.createElement("option");
+                option.text = method;
+                option.value = method.toLowerCase();
+                explainableAiDropdown.add(option);
+            }
+        });
+    </script>
+</body>
+</html>
