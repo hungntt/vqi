@@ -41,11 +41,11 @@ class GradCamSegmentation:
         if torch.cuda.is_available():
             input_tensor = input_tensor.cuda()
 
-        output = self.model(input_tensor)
-        normalized_masks = torch.nn.functional.softmax(output, dim=1).cpu()
+        output = self.model(input_tensor)["out"]
+        _, predicted = torch.max(output, 1)
 
         category_idx = self.sem_class_to_idx[category]
-        mask = normalized_masks[0, :, :, :].argmax(axis=0).detach().cpu().numpy()
+        mask = predicted[0].detach().cpu().numpy()
         mask_uint8 = 255 * np.uint8(mask == category_idx)
         mask_float = np.float32(mask == category_idx)
         segmentation_image = Image.fromarray(np.uint8(mask_uint8))
