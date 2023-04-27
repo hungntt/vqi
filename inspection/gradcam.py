@@ -33,7 +33,7 @@ class GradCamSegmentation:
 
         self.model = SegmentationModelOutputWrapper(self.model)
 
-    def process_image(self, image_path, category="cable", is_url=False, xai="GradCAM"):
+    def process_image(self, image_path, label_path, category="cable", is_url=False, xai="GradCAM"):
         if is_url:
             image = np.array(Image.open(requests.get(image_path, stream=True).raw))
         else:
@@ -49,7 +49,6 @@ class GradCamSegmentation:
         output = self.model(input_tensor)
         normalized_masks = torch.nn.functional.softmax(output, dim=1).cpu()
 
-        label_path = image_path.replace('.jpg', '.json').replace('/images/', '/labels/')
         with open(label_path, 'r') as f:
             label = json.load(f)
         coco_mask = torch.zeros(rgb_img.shape[0], rgb_img.shape[1], dtype=torch.int64)
