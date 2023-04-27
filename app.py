@@ -31,7 +31,7 @@ def index():
             xai = request.form.get("explainable_ai")
 
             # Process the image with the GradCamSegmentation class
-            segmentation_image, cam_image = GradCamSegmentation().process_image(image_path=filepath, is_url=False,
+            segmentation_image, cam_image, coco_image = GradCamSegmentation().process_image(image_path=filepath, is_url=False,
                                                                                 xai=xai)
             # Save the cam_image result to a file
             result_filename = 'result_' + filename
@@ -42,7 +42,8 @@ def index():
             segment_filepath = os.path.join(app.config['RESULT_FOLDER'], segment_filename)
             segmentation_image.save(segment_filepath)
 
-            return render_template('result.html', image=filepath, segmentation=segment_filepath, result=result_filepath)
+            return render_template('result.html', image=filepath, segmentation=segment_filepath, result=result_filepath,
+                                   coco_image=coco_image)
 
     return render_template('index.html')
 
