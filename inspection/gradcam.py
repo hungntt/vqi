@@ -48,8 +48,10 @@ class GradCamSegmentation:
         mask = normalized_masks[0, :, :, :].argmax(axis=0).detach().cpu().numpy()
         mask_uint8 = 255 * np.uint8(mask == category_idx)
         mask_float = np.float32(mask == category_idx)
-        mask_norm = mask_float / np.max(mask_float)
-        segmentation_image = Image.fromarray(np.uint8(mask_norm * 255))
+        segmentation_image = Image.fromarray(np.uint8(mask_uint8)).convert('RGBA')
+
+        # Resize segmentation image to match original image size
+        segmentation_image = segmentation_image.resize((image.shape[1], image.shape[0]))
 
         target_layers = [self.model.model.backbone.layer4]
         targets = [SemanticSegmentationTarget(category_idx, mask_float)]
@@ -60,7 +62,11 @@ class GradCamSegmentation:
             cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
             grad_cam_image = Image.fromarray(np.uint8(cam_image * 255))
 
-        return segmentation_image, grad_cam_image
+        # Create a new image with segmentation overlay on original image
+        result_image = Image.fromarray(image)
+        result_image.alpha_composite(segmentation_image)
+
+        return result_image, grad_cam_image
 
 
 if __name__ == '__main__':
