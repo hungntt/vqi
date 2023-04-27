@@ -3,73 +3,76 @@
 <head>
     <meta charset="utf-8">
     <title>Image Classifier</title>
+    <style>
+        .loading {
+            display: none;
+        }
+
+        .spinner {
+            margin: 50px auto;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 5px solid #ccc;
+            border-top-color: #999;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body>
     <h1>Upload an image for classification</h1>
-    <form method="POST" enctype="multipart/form-data">
-        <label for="problem">Problem:</label>
-        <select id="problem" name="problem">
-            <option value="classification">Classification</option>
-            <option value="object_detection">Object Detection</option>
-            <option value="segmentation">Segmentation</option>
-        </select>
-        <br><br>
-
-        <label for="model">AI Model:</label>
-        <select id="model" name="model">
-            <!-- Default options for Classification -->
-            <option value="vgg16">VGG16</option>
-        </select>
-        <br><br>
-
-        <label for="explainable_ai">Explainable AI Method:</label>
-        <select id="explainable_ai" name="explainable_ai">
-            <!-- Default options for Classification -->
-            <option value="gradcam">GradCAM</option>
-        </select>
-        <br><br>
+    <form id="image-form" method="POST" enctype="multipart/form-data">
+        {% include 'dropdown.html' %}
 
         <input type="file" name="file" accept="image/*">
-        <button type="submit">Upload</button>
+        <button type="submit" id="submit-button">Upload</button>
     </form>
 
+    <div class="loading" id="loading-spinner">
+        <div class="spinner"></div>
+        <p>Please wait while we process your request...</p>
+    </div>
+
     <script>
-        const problemDropdown = document.getElementById("problem");
-        const modelDropdown = document.getElementById("model");
-        const explainableAiDropdown = document.getElementById("explainable_ai");
+        const form = document.getElementById("image-form");
+        const spinner = document.getElementById("loading-spinner");
+        const submitButton = document.getElementById("submit-button");
 
-        const modelOptions = {
-            classification: ["VGG16"],
-            object_detection: ["YOLOX", "YOLOv4"],
-            segmentation: ["UNet", "ResNet50"]
-        };
+        form.addEventListener("submit", (event) => {
+            event.preventDefault(); // prevent the form from submitting normally
 
-        const explainableAiOptions = {
-            classification: ["GradCAM"],
-            object_detection: ["D-RISE"],
-            segmentation: ["ScoreMap", "GradCAM"]
-        };
+            // Show the loading spinner
+            spinner.style.display = "block";
 
-        problemDropdown.addEventListener("change", function () {
-            const selectedProblem = problemDropdown.value;
+            // Disable the submit button
+            submitButton.disabled = true;
 
-            // Update AI Model dropdown
-            modelDropdown.innerHTML = "";
-            for (const model of modelOptions[selectedProblem]) {
-                const option = document.createElement("option");
-                option.text = model;
-                option.value = model.toLowerCase();
-                modelDropdown.add(option);
-            }
-
-            // Update Explainable AI Method dropdown
-            explainableAiDropdown.innerHTML = "";
-            for (const method of explainableAiOptions[selectedProblem]) {
-                const option = document.createElement("option");
-                option.text = method;
-                option.value = method.toLowerCase();
-                explainableAiDropdown.add(option);
-            }
+            // Submit the form via AJAX
+            const formData = new FormData(form);
+            fetch("/", {
+                method: "POST",
+                body: formData
+            }).then((response) => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return response.text();
+            }).then((html) => {
+                // Replace the current HTML with the result HTML
+                document.documentElement.innerHTML = html;
+            }).catch((error) => {
+                console.error("Error:", error);
+            }).finally(() => {
+                // Hide the loading spinner and enable the submit button
+                spinner.style.display = "none";
+                submitButton.disabled = false;
+            });
         });
     </script>
 </body>

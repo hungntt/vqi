@@ -48,7 +48,8 @@ class GradCamSegmentation:
         mask = normalized_masks[0, :, :, :].argmax(axis=0).detach().cpu().numpy()
         mask_uint8 = 255 * np.uint8(mask == category_idx)
         mask_float = np.float32(mask == category_idx)
-        both_images = np.hstack((image, np.repeat(mask_uint8[:, :, None], 3, axis=-1)))
+        segmentation_image = Image.fromarray(np.uint8(mask_uint8))
+
         target_layers = [self.model.model.backbone.layer4]
         targets = [SemanticSegmentationTarget(category_idx, mask_float)]
 
@@ -56,8 +57,9 @@ class GradCamSegmentation:
                             use_cuda=torch.cuda.is_available()) as cam:
             grayscale_cam = cam(input_tensor=input_tensor, targets=targets)[0, :]
             cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
+            grad_cam_image = Image.fromarray(np.uint8(cam_image * 255))
 
-        return Image.fromarray(cam_image)
+        return segmentation_image, grad_cam_image
 
 
 if __name__ == '__main__':
