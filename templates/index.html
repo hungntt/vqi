@@ -29,10 +29,9 @@
     <h1>Upload an image for classification</h1>
     <form id="image-form" method="POST" enctype="multipart/form-data">
         {% include 'dropdown.html' %}
-        <label for="image-file">Upload image:</label>
-        <input type="file" name="image_file" id="image-file" accept="image/*"><br>
-        <label for="ann-file">Upload annotation:</label>
-        <input type="file" name="label_file" id="label-file" accept=".json"><br>
+
+        <input type="file" name="file" accept="image/*">
+        <input type="file" name="label_file" id="label-file" accept=".json">
         <button type="submit" id="submit-button">Upload</button>
     </form>
 

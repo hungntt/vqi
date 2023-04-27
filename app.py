@@ -7,7 +7,7 @@ from inspection.gradcam import GradCamSegmentation
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads/'
-app.config['ANNOTATION_FOLDER'] = 'static/annotations/'
+app.config['LABEL_FOLDER'] = 'static/labels/'
 app.config['RESULT_FOLDER'] = 'static/results/'
 
 
@@ -17,28 +17,29 @@ def index():
         if 'file' not in request.files:
             return redirect(request.url)
 
-        file = request.files['image-file']
-        label = request.files['label-file']
+        file = request.files['file']
+        label_file = request.files['label_file']
         if file.filename == '':
             return redirect(request.url)
 
         if file:
             filename = secure_filename(file.filename)
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(image_path)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
 
-            labelname = secure_filename(label.filename)
-            label_path = os.path.join(app.config['ANNOTATION_FOLDER'], labelname)
-            label.save(label_path)
+            label_filename = secure_filename(label_file.filename)
+            label_filepath = os.path.join(app.config['LABEL_FOLDER'], label_filename)
+            label_file.save(label_filepath)
 
             # Get the chosen options
+            problem = request.form.get("problem")
+            model = request.form.get("model")
             xai = request.form.get("explainable_ai")
 
             # Process the image with the GradCamSegmentation class
-            segmentation_image, cam_image, coco_image = GradCamSegmentation().process_image(image_path=image_path,
-                                                                                            label_path=label_path,
-                                                                                            is_url=False,
-                                                                                            xai=xai, )
+            segmentation_image, cam_image, coco_image = GradCamSegmentation().process_image(image_path=filepath,
+                                                                                            label_path=label_filepath,
+                                                                                            xai=xai)
             # Save the cam_image result to a file
             result_filename = 'result_' + filename
             result_filepath = os.path.join(app.config['RESULT_FOLDER'], result_filename)
@@ -48,11 +49,12 @@ def index():
             segment_filepath = os.path.join(app.config['RESULT_FOLDER'], segment_filename)
             segmentation_image.save(segment_filepath)
 
-            return render_template('result.html',
-                                   image=image_path,
-                                   segmentation=segment_filepath,
-                                   result=result_filepath,
-                                   coco_image=coco_image)
+            coco_filename = 'coco_' + filename
+            coco_filepath = os.path.join(app.config['RESULT_FOLDER'], coco_filename)
+            coco_image.save(coco_filepath)
+
+            return render_template('result.html', image=filepath, segmentation=segment_filepath, result=result_filepath,
+                                   coco_image=coco_filepath)
 
     return render_template('index.html')
 

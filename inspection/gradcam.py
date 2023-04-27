@@ -4,6 +4,7 @@ import numpy as np
 import requests
 from PIL import Image, ImageDraw
 import torch
+from matplotlib import patches, pyplot as plt
 from pytorch_grad_cam import *
 from pytorch_grad_cam.utils.image import preprocess_image, show_cam_on_image
 from torchvision.models.segmentation import deeplabv3_resnet50
@@ -34,10 +35,8 @@ class GradCamSegmentation:
         self.model = SegmentationModelOutputWrapper(self.model)
 
     def process_image(self, image_path, label_path, category="cable", is_url=False, xai="GradCAM"):
-        if is_url:
-            image = np.array(Image.open(requests.get(image_path, stream=True).raw))
-        else:
-            image = np.array(Image.open(image_path))
+        orig_image = Image.open(image_path)
+        image = np.array(orig_image)
 
         rgb_img = np.float32(image) / 255
 
@@ -50,36 +49,22 @@ class GradCamSegmentation:
         normalized_masks = torch.nn.functional.softmax(output, dim=1).cpu()
 
         with open(label_path, 'r') as f:
-            label = json.load(f)
-        coco_mask = torch.zeros(rgb_img.shape[0], rgb_img.shape[1], dtype=torch.int64)
-        for shape in label['shapes']:
-            if shape['label'] in self.sem_classes:
-                class_id = self.label_map[self.sem_classes.index(shape['label'])]  # Map class name to ID
-                points = shape['points']
-                # Convert polygon points to binary mask
-                polygon = [(p[0], p[1]) for p in points]
-                img_draw = ImageDraw.Draw(Image.fromarray(np.uint8(rgb_img)))
-                img_draw.polygon(polygon, fill=1)
-                object_mask = torch.tensor(np.array(rgb_img)).permute(1, 0, 2).sum(dim=2).round().int()
-                object_mask[object_mask != class_id] = 0
-                object_mask[object_mask == class_id] = 1
-                coco_mask = torch.maximum(coco_mask, object_mask)
+            data = json.load(f)
 
-        # Convert the mask to a PIL image object
-        coco_mask_uint8 = coco_mask.detach().cpu().numpy().astype(np.uint8)
-        coco_mask_color = np.zeros_like(image)
-        coco_mask_color[coco_mask_uint8 > 0] = (0, 0, 255)  # set the color of the segmentation mask to red (BGR format)
-        coco_mask_color = cv2.cvtColor(coco_mask_color, cv2.COLOR_BGR2RGB)
-        coco_mask_image = Image.fromarray(coco_mask_color)
+        mask = Image.new('RGBA', orig_image.size, (0, 0, 0, 0))
 
-        # Overlay segmentation mask on input image
-        coco_overlayed_image = cv2.addWeighted(image, 0.5, coco_mask_color, 0.5, 0)
+        draw = ImageDraw.Draw(mask)
+        for shape in data['shapes']:
+            points = [(p[0], p[1]) for p in shape['points']]
+            draw.polygon(points, fill=tuple(shape['fill_color']), outline=tuple(shape['line_color']))
+            # Add the label name to the annotation
+            draw.text(points[0], shape['label'], fill=tuple(shape['fill_color']), align='center')
 
-        # Convert the overlayed image back to RGB for PIL
-        coco_rgb_overlayed_image = cv2.cvtColor(coco_overlayed_image, cv2.COLOR_BGR2RGB)
+        # Combine the image and the segmentation mask
+        result = Image.alpha_composite(orig_image.convert('RGBA'), mask)
 
-        # Convert the overlayed image to a PIL image object
-        coco_pil_overlayed_image = Image.fromarray(coco_rgb_overlayed_image)
+        # Convert the result to a PIL image object
+        pil_seg_image = result.convert('RGB')
 
         category_idx = self.sem_class_to_idx[category]
         mask = normalized_masks[0, :, :, :].argmax(axis=0).detach().cpu().numpy()
@@ -92,10 +77,8 @@ class GradCamSegmentation:
         # Convert mask to color image
         mask_color = np.zeros_like(image)
         mask_color[mask_uint8 > 0] = (0, 0, 255)  # set the color of the segmentation mask to red (BGR format)
-
-        bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
         # Overlay segmentation mask on input image
+        bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         overlayed_image = cv2.addWeighted(bgr_image, 0.5, mask_color, 0.5, 0)
 
         # Convert the overlayed image back to RGB for PIL
@@ -112,4 +95,4 @@ class GradCamSegmentation:
             grayscale_cam = cam(input_tensor=input_tensor, targets=targets)[0, :]
             cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
 
-        return pil_overlayed_image, Image.fromarray(cam_image), coco_pil_overlayed_image
+        return pil_overlayed_image, Image.fromarray(cam_image), pil_seg_image
