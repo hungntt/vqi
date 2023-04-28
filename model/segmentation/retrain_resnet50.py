@@ -1,33 +1,28 @@
-import torch
-import torchvision
-from torchvision.models.detection import transform
-from torchvision.models.segmentation.deeplabv3 import DeepLabHead
-from torch.utils.data import DataLoader, Dataset
-from torchvision.datasets import CocoDetection
-from torchvision.transforms import Compose, Resize, ToTensor
-from pycocotools.coco import COCO
-from PIL import Image, ImageDraw
-import numpy as np
-import os
 import json
-from torchvision.transforms import ToTensor
+import os
+
+import numpy as np
+import torch
+from PIL import Image, ImageDraw
+from matplotlib import pyplot as plt
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
+from torchvision.models.segmentation.deeplabv3 import deeplabv3_resnet50
 
 # Define the COCO_CLASSES and COCO_LABEL_MAP
 COCO_CLASSES = ('cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden')
 
-COCO_LABEL_MAP = {0: 1, 1: 2, 2: 3, 3: 4}
+COCO_LABEL_MAP = {cls: idx for (idx, cls) in enumerate(COCO_CLASSES)}
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 
 # Define custom dataset
 class CustomDataset(Dataset):
-    def __init__(self, img_dir, label_dir, transform=None):
+    def __init__(self, img_dir, label_dir):
         self.img_dir = img_dir
         self.label_dir = label_dir
-        self.transform = transform
-
-        # Get list of image and label files
-        self.img_files = sorted(os.listdir(img_dir))
-        self.label_files = sorted(os.listdir(label_dir))
+        self.img_files = os.listdir(self.img_dir)
+        self.label_files = os.listdir(self.label_dir)
 
     def __len__(self):
         return len(self.img_files)
@@ -36,44 +31,67 @@ class CustomDataset(Dataset):
         img_path = os.path.join(self.img_dir, self.img_files[idx])
         label_path = os.path.join(self.label_dir, self.label_files[idx])
 
-        # Load image and label
-        img = Image.open(img_path).convert('RGB')
-        with open(label_path) as f:
-            label = json.load(f)
+        # Load image
+        orig_image = Image.open(img_path).convert('RGB')
+        image_size = orig_image.size
+        # Load label and extract segmentation mask
+        with open(label_path, 'r') as f:
+            data = json.load(f)
 
-        # Convert label to segmentation mask
-        mask = torch.zeros(img.size[1], img.size[0], dtype=torch.int64)
-        for shape in label['shapes']:
+        mask = Image.new('L', orig_image.size, 0)
+        draw = ImageDraw.Draw(mask)
+        for shape in data['shapes']:
             if shape['label'] in COCO_CLASSES:
-                class_id = COCO_LABEL_MAP[COCO_CLASSES.index(shape['label'])]  # Map COCO class name to ID
-                points = shape['points']
-                # Convert polygon points to binary mask
-                polygon = [(p[0], p[1]) for p in points]
-                img_draw = ImageDraw.Draw(img)
-                img_draw.polygon(polygon, fill=1)
-                object_mask = torch.tensor(np.array(img)).permute(1, 0, 2).sum(dim=2).round().int()
-                object_mask[object_mask != class_id] = 0
-                object_mask[object_mask == class_id] = 1
-                mask = torch.maximum(mask, object_mask)
+                class_id = COCO_LABEL_MAP[shape['label']]
+                points = [(p[0], p[1]) for p in shape['points']]
+                draw.polygon(points, fill=class_id)
+        mask = np.array(mask)
 
-        # Apply transformation if specified
-        if self.transform:
-            img, mask = self.transform(img, mask)
-
+        # Apply transforms to image and mask
+        transform = transforms.Compose([
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+        img = transform(orig_image)
+        mask = torch.tensor(mask, dtype=torch.int64)
+        # Display the original image and the segmentation mask for verification
+        # visualize_mask(mask)
         return img, mask
 
 
-def custom_collate(batch):
-    # Convert batch of PIL images and labels to batch of tensors
-    img_batch, mask_batch = zip(*batch)
-    img_batch = torch.stack([ToTensor()(img).to(device) for img in img_batch])
-    mask_batch = torch.stack([torch.tensor(np.array(mask)).long().to(device) for mask in mask_batch])
+def visualize_mask(mask):
+    fig, ax = plt.subplots(1)
+    ax.imshow(mask, cmap='gray')
+    ax.set_title('Segmentation Mask')
+    plt.show()
 
-    return img_batch, mask_batch
+
+def custom_collate(batch):
+    images, masks = [], []
+    for sample in batch:
+        img, mask = sample
+        if isinstance(img, torch.Tensor):
+            images.append(img)
+        else:
+            img = transforms.ToTensor()(img)
+            images.append(img)
+        masks.append(mask)
+    images = torch.stack(images, dim=0)
+    masks = torch.stack(masks, dim=0)
+    return images, masks
+
+
+def dice_loss(output, target):
+    smooth = 1e-7
+    output = torch.sigmoid(output)
+    intersection = torch.sum(output * target)
+    dice = (2. * intersection + smooth) / (torch.sum(output) + torch.sum(target) + smooth)
+    return 1 - dice
 
 
 # Initialization
-num_epochs = 1
+num_epochs = 30
 batch_size = 4
 
 # Initialize custom dataset and data loader
@@ -85,18 +103,19 @@ data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_f
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Device: ', device)
 # Move model and data to GPU
-model = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=False, num_classes=len(COCO_CLASSES))
+model = deeplabv3_resnet50(pretrained=False, num_classes=len(COCO_CLASSES))
 model.to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 print('Training started...')
 for epoch in range(num_epochs):
     for i, (images, masks) in enumerate(data_loader):
+        # Move data to GPU
+        images = images.to(device)
+        masks = masks.to(device)
         # Forward pass
         outputs = model(images)['out']
-
         # Compute loss
-        loss = torch.nn.functional.cross_entropy(outputs, masks, ignore_index=255)
-
+        loss = dice_loss(outputs, masks)
         # Backward pass and optimize
         optimizer.zero_grad()
         loss.backward()
