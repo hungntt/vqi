@@ -2,36 +2,100 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Image Classifier</title>
+    <title>Visual Quality Inspection</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 50px 0 30px;
+        }
+
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        input[type=file] {
+            margin-bottom: 20px;
+        }
+
+        button[type=submit] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button[type=submit]:hover {
+            background-color: #3e8e41;
+        }
+
         .loading {
             display: none;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .loading p {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
         }
 
         .spinner {
-            margin: 50px auto;
-            width: 50px;
-            height: 50px;
+            display: inline-block;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            border: 5px solid #ccc;
-            border-top-color: #999;
-            animation: spin 1s ease-in-out infinite;
+            border-top: 3px solid #3498db;
+            border-right: 3px solid transparent;
+            animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            to {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
                 transform: rotate(360deg);
             }
         }
     </style>
 </head>
 <body>
-    <h1>Upload an image for classification</h1>
+    <h1>Visual Quality Inspection</h1>
     <form id="image-form" method="POST" enctype="multipart/form-data">
         {% include 'dropdown.html' %}
 
         <input type="file" name="file" accept="image/*">
         <input type="file" name="label_file" id="label-file" accept=".json">
+        <label for="label-file">Annotation (in COCO format)</label>
         <button type="submit" id="submit-button">Upload</button>
     </form>
 

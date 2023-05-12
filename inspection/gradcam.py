@@ -7,7 +7,7 @@ import torch
 from matplotlib import patches, pyplot as plt
 from pytorch_grad_cam import *
 from pytorch_grad_cam.utils.image import preprocess_image, show_cam_on_image
-from torchvision.models.segmentation import deeplabv3_resnet50
+from torchvision.models.segmentation import deeplabv3_resnet50, deeplabv3_resnet101
 import cv2
 
 from model.segmentation.segmentation_output_wrapper import SegmentationModelOutputWrapper
@@ -17,14 +17,12 @@ from model.segmentation.semantic_segmentation_target import SemanticSegmentation
 class GradCamSegmentation:
     def __init__(self):
         self.sem_classes = [
-            'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden'
+            '__background__', 'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden'
         ]
-
-        self.label_map = {0: 1, 1: 2, 2: 3, 3: 4}
 
         self.sem_class_to_idx = {cls: idx for (idx, cls) in enumerate(self.sem_classes)}
 
-        self.model = deeplabv3_resnet50(pretrained=False, num_classes=len(self.sem_classes))
+        self.model = deeplabv3_resnet101(pretrained=False, num_classes=len(self.sem_classes))
         PATH = 'model/segmentation/model.pth'
         self.model.load_state_dict(torch.load(PATH))
         self.model = self.model.eval()
@@ -34,7 +32,7 @@ class GradCamSegmentation:
 
         self.model = SegmentationModelOutputWrapper(self.model)
 
-    def process_image(self, image_path, label_path, category="cable", is_url=False, xai="GradCAM"):
+    def process_image(self, image_path, label_path, category="tower_wooden", is_url=False, xai="GradCAM"):
         orig_image = Image.open(image_path)
         image = np.array(orig_image)
 
@@ -45,9 +43,6 @@ class GradCamSegmentation:
         if torch.cuda.is_available():
             input_tensor = input_tensor.cuda()
 
-        output = self.model(input_tensor)
-        normalized_masks = torch.nn.functional.softmax(output, dim=1).cpu()
-
         with open(label_path, 'r') as f:
             data = json.load(f)
 
@@ -56,9 +51,16 @@ class GradCamSegmentation:
         draw = ImageDraw.Draw(mask)
         for shape in data['shapes']:
             points = [(p[0], p[1]) for p in shape['points']]
-            draw.polygon(points, fill=tuple(shape['fill_color']), outline=tuple(shape['line_color']))
+            try:
+                draw.polygon(points, fill=tuple(shape['fill_color']), outline=tuple(shape['line_color']))
+            except TypeError:
+                # fill red color if no fill color is specified
+                draw.polygon(points, fill=(255, 0, 0, 255), outline=(0, 255, 0, 255))
             # Add the label name to the annotation
-            draw.text(points[0], shape['label'], fill=tuple(shape['fill_color']), align='center')
+            try:
+                draw.text(points[0], shape['label'], fill=tuple(shape['fill_color']), align='center')
+            except TypeError:
+                draw.text(points[0], shape['label'], fill=(255, 0, 0, 255), align='center')
 
         # Combine the image and the segmentation mask
         result = Image.alpha_composite(orig_image.convert('RGBA'), mask)
@@ -66,6 +68,10 @@ class GradCamSegmentation:
         # Convert the result to a PIL image object
         pil_seg_image = result.convert('RGB')
 
+        # ======= Model output =======
+
+        output = self.model(input_tensor)
+        normalized_masks = torch.nn.functional.softmax(output, dim=1).cpu()
         category_idx = self.sem_class_to_idx[category]
         mask = normalized_masks[0, :, :, :].argmax(axis=0).detach().cpu().numpy()
         mask_uint8 = 255 * np.uint8(mask == category_idx)

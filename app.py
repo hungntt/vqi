@@ -35,9 +35,11 @@ def index():
             problem = request.form.get("problem")
             model = request.form.get("model")
             xai = request.form.get("explainable_ai")
+            category = request.form.get("category")
 
             # Process the image with the GradCamSegmentation class
             segmentation_image, cam_image, coco_image = GradCamSegmentation().process_image(image_path=filepath,
+                                                                                            category=category,
                                                                                             label_path=label_filepath,
                                                                                             xai=xai)
             # Save the cam_image result to a file

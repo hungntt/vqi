@@ -9,8 +9,10 @@ from pytorch_grad_cam.utils.model_targets import SemanticSegmentationTarget, Cla
 from torchvision.models.segmentation import deeplabv3_resnet101, deeplabv3_resnet50
 from pytorch_grad_cam import GradCAM, GradCAMPlusPlus, EigenGradCAM, AblationCAM, RandomCAM
 
+from model.segmentation.segmentation_output_wrapper import SegmentationModelOutputWrapper
+
 xai = "GradCAM"
-COCO_CLASSES = ('__background__', 'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden')
+COCO_CLASSES = ['__background__', 'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden']
 
 COCO_LABEL_MAP = {cls: idx for (idx, cls) in enumerate(COCO_CLASSES)}
 PATH = 'model/segmentation/model.pth'
@@ -61,6 +63,7 @@ def benchmark(input_tensor, target_layers, rgb_img, eigen_smooth=False,
 
 if __name__ == '__main__':
     np.random.seed(42)
+    category = 'tower_wooden'
 
     model = deeplabv3_resnet101(pretrained=False, num_classes=len(COCO_CLASSES))
     model.load_state_dict(torch.load(PATH))
@@ -75,15 +78,17 @@ if __name__ == '__main__':
         input_tensor = input_tensor.cuda()
         model.cuda()
 
+    model = SegmentationModelOutputWrapper(model)
     output = model(input_tensor)
     normalized_masks = torch.nn.functional.softmax(output, dim=1).cpu()
-    category_idx = COCO_LABEL_MAP[COCO_CLASSES]
+    category_idx = COCO_LABEL_MAP[category]
     mask = normalized_masks[0, :, :, :].argmax(axis=0).detach().cpu().numpy()
     mask_uint8 = 255 * np.uint8(mask == category_idx)
     mask_float = np.float32(mask == category_idx)
     target_layers = [model.model.backbone.layer4]
 
     benchmark(input_tensor, target_layers, rgb_img=rgb_img, eigen_smooth=False, aug_smooth=False, category=category_idx)
+
     # cam_metric = ROADCombined(percentiles=[20, 40, 60, 80])
     # target_layers = [model.model.backbone.layer4]
     # targets = [SemanticSegmentationTarget(category_idx, mask_float)]

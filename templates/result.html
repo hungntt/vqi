@@ -1,20 +1,79 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
     <meta charset="utf-8">
     <title>Image Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .image-container img {
+            width: calc(50% - 20px);
+            margin: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .image-container img:hover {
+            transform: scale(1.1);
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .go-back-button {
+            display: block;
+            margin: 0 auto;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .go-back-button:hover {
+            background-color: #3e8e41;
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
 <body>
     <h1>Image Classification Result</h1>
-    <h2>Original Image</h2>
-    <img src="{{ image }}" alt="Uploaded image" width="300">
-    <h2>COCO Annotation</h2>
-    <img src="{{ coco_image }}" alt="Uploaded image" width="300">
-    <h2>Segmentation Image</h2>
-    <img src="{{ segmentation }}" alt="Uploaded image" width="300">
-    <h2>Grad-CAM Result</h2>
-    <img src="{{ result }}" alt="Grad-CAM result" width="300">
-    <br>
-    <a href="{{ url_for('index') }}">Go back</a>
+    <div class="image-container">
+        <div>
+            <h2>Original Image</h2>
+            <img src="{{ image }}" alt="Uploaded image" width="300">
+            <h2>COCO Annotation</h2>
+            <img src="{{ coco_image }}" alt="COCO annotation" width="300">
+        </div>
+        <div>
+            <h2>Segmentation Image</h2>
+            <img src="{{ segmentation }}" alt="Segmentation result" width="300">
+            <h2>Grad-CAM Result</h2>
+            <img src="{{ result }}" alt="Grad-CAM result" width="300">
+        </div>
+    </div>
+    <a href="{{ url_for('index') }}" class="go-back-button">Go back</a>
 </body>
 </html>
