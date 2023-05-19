@@ -24,7 +24,10 @@ class GradCamSegmentation:
 
         self.model = deeplabv3_resnet101(pretrained=False, num_classes=len(self.sem_classes))
         PATH = 'model/segmentation/model.pth'
-        self.model.load_state_dict(torch.load(PATH))
+        if torch.cuda.is_available():
+            self.model.load_state_dict(torch.load(PATH))
+        else:
+            self.model.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
         self.model = self.model.eval()
 
         if torch.cuda.is_available():
@@ -32,7 +35,7 @@ class GradCamSegmentation:
 
         self.model = SegmentationModelOutputWrapper(self.model)
 
-    def process_image(self, image_path, label_path, category="tower_wooden", is_url=False, xai="GradCAM"):
+    def process_image(self, image_path, label_path, category="tower_wooden", xai="GradCAM"):
         orig_image = Image.open(image_path)
         image = np.array(orig_image)
 
@@ -43,30 +46,33 @@ class GradCamSegmentation:
         if torch.cuda.is_available():
             input_tensor = input_tensor.cuda()
 
-        with open(label_path, 'r') as f:
-            data = json.load(f)
+        if label_path is not None:
+            with open(label_path, 'r') as f:
+                data = json.load(f)
 
-        mask = Image.new('RGBA', orig_image.size, (0, 0, 0, 0))
+            mask = Image.new('RGBA', orig_image.size, (0, 0, 0, 0))
 
-        draw = ImageDraw.Draw(mask)
-        for shape in data['shapes']:
-            points = [(p[0], p[1]) for p in shape['points']]
-            try:
-                draw.polygon(points, fill=tuple(shape['fill_color']), outline=tuple(shape['line_color']))
-            except TypeError:
-                # fill red color if no fill color is specified
-                draw.polygon(points, fill=(255, 0, 0, 255), outline=(0, 255, 0, 255))
-            # Add the label name to the annotation
-            try:
-                draw.text(points[0], shape['label'], fill=tuple(shape['fill_color']), align='center')
-            except TypeError:
-                draw.text(points[0], shape['label'], fill=(255, 0, 0, 255), align='center')
+            draw = ImageDraw.Draw(mask)
+            for shape in data['shapes']:
+                points = [(p[0], p[1]) for p in shape['points']]
+                try:
+                    draw.polygon(points, fill=tuple(shape['fill_color']), outline=tuple(shape['line_color']))
+                except TypeError:
+                    # fill red color if no fill color is specified
+                    draw.polygon(points, fill=(255, 0, 0, 255), outline=(0, 255, 0, 255))
+                # Add the label name to the annotation
+                try:
+                    draw.text(points[0], shape['label'], fill=tuple(shape['fill_color']), align='center')
+                except TypeError:
+                    draw.text(points[0], shape['label'], fill=(255, 0, 0, 255), align='center')
 
-        # Combine the image and the segmentation mask
-        result = Image.alpha_composite(orig_image.convert('RGBA'), mask)
+            # Combine the image and the segmentation mask
+            result = Image.alpha_composite(orig_image.convert('RGBA'), mask)
 
-        # Convert the result to a PIL image object
-        pil_seg_image = result.convert('RGB')
+            # Convert the result to a PIL image object
+            coco_image = result.convert('RGB')
+        else:
+            coco_image = None
 
         # ======= Model output =======
 
@@ -91,7 +97,7 @@ class GradCamSegmentation:
         rgb_overlayed_image = cv2.cvtColor(overlayed_image, cv2.COLOR_BGR2RGB)
 
         # Convert the overlayed image to a PIL image object
-        pil_overlayed_image = Image.fromarray(rgb_overlayed_image)
+        segmentation = Image.fromarray(rgb_overlayed_image)
 
         target_layers = [self.model.model.backbone.layer4]
         targets = [SemanticSegmentationTarget(category_idx, mask_float)]
@@ -100,5 +106,6 @@ class GradCamSegmentation:
                             use_cuda=torch.cuda.is_available()) as cam:
             grayscale_cam = cam(input_tensor=input_tensor, targets=targets)[0, :]
             cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
+        explanation = Image.fromarray(cam_image)
 
-        return pil_overlayed_image, Image.fromarray(cam_image), pil_seg_image
+        return segmentation, explanation, coco_image

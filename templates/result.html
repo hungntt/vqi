@@ -23,9 +23,15 @@
             margin-bottom: 30px;
         }
 
+        .image-container > div {
+            text-align: center;
+            margin: 0 10px;
+        }
+
         .image-container img {
-            width: calc(50% - 20px);
-            margin: 10px;
+            display: block;
+            margin: 0 auto;
+            width: 300px;
             border: 1px solid #ccc;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
             border-radius: 5px;
@@ -33,7 +39,7 @@
         }
 
         .image-container img:hover {
-            transform: scale(1.5);
+            transform: scale(1.1);
             box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
         }
 
@@ -63,16 +69,24 @@
         <div>
             <h2>Original Image</h2>
             <img src="{{ image }}" alt="Uploaded image" width="300">
+        </div>
+
+        {% if coco_image %}
+        <div>
             <h2>COCO Annotation</h2>
             <img src="{{ coco_image }}" alt="COCO annotation" width="300">
         </div>
+        {% endif %}
+
         <div>
             <h2>Segmentation Image</h2>
             <img src="{{ segmentation }}" alt="Segmentation result" width="300">
+        </div>
+
+        <div>
             <h2>Explanation</h2>
             <img src="{{ result }}" alt="Explanation" width="300">
         </div>
     </div>
-    <a href="{{ url_for('index') }}" class="go-back-button">Go back</a>
 </body>
 </html>

@@ -2,3 +2,13 @@
 /static/results/*
 /images/
 /model/segmentation/model.pth
+/data/labels/
+/data/images/
+.idea/
+__pycache__/
+data/.DS_Store
+/data/data_original_size_v1.zip
+.DS_Store
+coco.py
+static/.DS_Store
+model/segmentation/old_model.pth
