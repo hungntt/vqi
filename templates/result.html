@@ -33,7 +33,7 @@
         }
 
         .image-container img:hover {
-            transform: scale(1.1);
+            transform: scale(1.5);
             box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
         }
 
@@ -59,7 +59,6 @@
     </style>
 </head>
 <body>
-    <h1>Image Classification Result</h1>
     <div class="image-container">
         <div>
             <h2>Original Image</h2>
@@ -70,8 +69,8 @@
         <div>
             <h2>Segmentation Image</h2>
             <img src="{{ segmentation }}" alt="Segmentation result" width="300">
-            <h2>Grad-CAM Result</h2>
-            <img src="{{ result }}" alt="Grad-CAM result" width="300">
+            <h2>Explanation</h2>
+            <img src="{{ result }}" alt="Explanation" width="300">
         </div>
     </div>
     <a href="{{ url_for('index') }}" class="go-back-button">Go back</a>

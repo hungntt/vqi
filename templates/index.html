@@ -92,11 +92,13 @@
     <h1>Visual Quality Inspection</h1>
     <form id="image-form" method="POST" enctype="multipart/form-data">
         {% include 'dropdown.html' %}
+        <label for="file">Image:</label>
+        <input type="file" name="file" id="file" accept="image/*">
 
-        <input type="file" name="file" accept="image/*">
-        <input type="file" name="label_file" id="label-file" accept=".json">
-        <label for="label-file">Annotation (in COCO format)</label>
-        <button type="submit" id="submit-button">Upload</button>
+        <label for="label-file">Annotation:</label>
+        <input type="file" name="label_file" id="label-file" accept=".json"><br/>
+
+        <button type="submit" id="submit-button">Explain</button>
     </form>
 
     <div class="loading" id="loading-spinner">
