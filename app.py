@@ -58,8 +58,9 @@ def index():
                                                         xai=xai)
                 # Save the cam_image result to a file
                 cam_image.save(result_filepath)
-
                 segmentation_image.save(segment_filepath)
+            else:
+                coco_image = None
             processing_time = time.time() - start_time
             print(f'Processing time: {processing_time}')
 
