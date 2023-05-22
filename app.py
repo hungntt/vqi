@@ -47,7 +47,7 @@ def index():
             segment_filename = f'segment_{category}_{filename}'
             segment_filepath = os.path.join(app.config['RESULT_FOLDER'], segment_filename)
 
-            coco_filename = 'coco_' + filename
+            coco_filename = f'coco_{category}_{filename}'
             coco_filepath = os.path.join(app.config['RESULT_FOLDER'], coco_filename)
 
             start_time = time.time()
@@ -62,6 +62,7 @@ def index():
                 # Save the cam_image result to a file
                 cam_image.save(result_filepath)
                 segmentation_image.save(segment_filepath)
+                coco_image.save(coco_filepath)
             else:
                 coco_image = None
             processing_time = time.time() - start_time
@@ -71,7 +72,7 @@ def index():
                 return render_template('result.html', image=filepath, segmentation=segment_filepath,
                                        result=result_filepath)
             else:
-                coco_image.save(coco_filepath)
+
                 return render_template('result.html', image=filepath, segmentation=segment_filepath,
                                        result=result_filepath,
                                        coco_image=coco_filepath)
