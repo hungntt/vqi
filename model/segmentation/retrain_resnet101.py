@@ -120,7 +120,7 @@ data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_f
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Device: ', device)
 # Move model and data to GPU
-model = deeplabv3_resnet50(pretrained=False, num_classes=len(COCO_CLASSES))
+model = deeplabv3_resnet101(pretrained=False, num_classes=len(COCO_CLASSES))
 model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 print('Training started...')
