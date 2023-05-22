@@ -55,10 +55,10 @@ def index():
             # Check if result_filepath is available or not
             if not os.path.isfile(result_filepath) or os.path.isfile(coco_filepath):
                 segmentation_image, cam_image, coco_image = \
-                    GradCamSegmentation().process_image(image_path=filepath,
-                                                        category=category,
-                                                        label_path=label_filepath,
-                                                        xai=xai)
+                    GradCamSegmentation(model=model).process_image(image_path=filepath,
+                                                                   category=category,
+                                                                   label_path=label_filepath,
+                                                                   xai=xai)
                 # Save the cam_image result to a file
                 cam_image.save(result_filepath)
                 segmentation_image.save(segment_filepath)
