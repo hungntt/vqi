@@ -41,13 +41,13 @@ def index():
             xai = request.form.get("explainable_ai")
             category = request.form.get("category")
 
-            result_filename = f'result_{xai}_{category}_{filename}'
+            result_filename = f'result_{xai}_{model}_{category}_{filename}'
             result_filepath = os.path.join(app.config['RESULT_FOLDER'], result_filename)
 
-            segment_filename = f'segment_{category}_{filename}'
+            segment_filename = f'segment_{category}_{model}_{filename}'
             segment_filepath = os.path.join(app.config['RESULT_FOLDER'], segment_filename)
 
-            coco_filename = f'coco_{category}_{filename}'
+            coco_filename = f'coco_{category}_{model}_{filename}'
             coco_filepath = os.path.join(app.config['RESULT_FOLDER'], coco_filename)
 
             start_time = time.time()
