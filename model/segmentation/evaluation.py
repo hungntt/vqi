@@ -87,7 +87,8 @@ if __name__ == '__main__':
     mask_float = np.float32(mask == category_idx)
     target_layers = [model.model.backbone.layer4]
 
-    benchmark(input_tensor, target_layers, rgb_img=rgb_img, eigen_smooth=False, aug_smooth=False, category=category_idx)
+    image = benchmark(input_tensor, target_layers, rgb_img=rgb_img, eigen_smooth=False, aug_smooth=False, category=category_idx)
+    image.save(f"{xai}_{category}.png")
 
     # cam_metric = ROADCombined(percentiles=[20, 40, 60, 80])
     # target_layers = [model.model.backbone.layer4]
