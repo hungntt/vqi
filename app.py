@@ -41,13 +41,13 @@ def index():
             xai = request.form.get("explainable_ai")
             category = request.form.get("category")
 
-            result_filename = f'result_{xai}_{category}_{filename}'
+            result_filename = f'result_{xai}_{model}_{category}_{filename}'
             result_filepath = os.path.join(app.config['RESULT_FOLDER'], result_filename)
 
-            segment_filename = f'segment_{category}_{filename}'
+            segment_filename = f'segment_{category}_{model}_{filename}'
             segment_filepath = os.path.join(app.config['RESULT_FOLDER'], segment_filename)
 
-            coco_filename = f'coco_{category}_{filename}'
+            coco_filename = f'coco_{category}_{model}_{filename}'
             coco_filepath = os.path.join(app.config['RESULT_FOLDER'], coco_filename)
 
             start_time = time.time()
@@ -55,10 +55,10 @@ def index():
             # Check if result_filepath is available or not
             if not os.path.isfile(result_filepath) or os.path.isfile(coco_filepath):
                 segmentation_image, cam_image, coco_image = \
-                    GradCamSegmentation().process_image(image_path=filepath,
-                                                        category=category,
-                                                        label_path=label_filepath,
-                                                        xai=xai)
+                    GradCamSegmentation(model=model).process_image(image_path=filepath,
+                                                                   category=category,
+                                                                   label_path=label_filepath,
+                                                                   xai=xai)
                 # Save the cam_image result to a file
                 cam_image.save(result_filepath)
                 segmentation_image.save(segment_filepath)

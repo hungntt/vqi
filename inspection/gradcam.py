@@ -15,15 +15,19 @@ from model.segmentation.semantic_segmentation_target import SemanticSegmentation
 
 
 class GradCamSegmentation:
-    def __init__(self):
+    def __init__(self, model='ResNet101'):
         self.sem_classes = [
             '__background__', 'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden'
         ]
 
         self.sem_class_to_idx = {cls: idx for (idx, cls) in enumerate(self.sem_classes)}
 
-        self.model = deeplabv3_resnet101(pretrained=False, num_classes=len(self.sem_classes))
-        PATH = 'model/segmentation/model.pth'
+        if model == 'ResNet101':
+            self.model = deeplabv3_resnet101(pretrained=False, num_classes=len(self.sem_classes))
+        elif model == 'ResNet50':
+            self.model = deeplabv3_resnet50(pretrained=False, num_classes=len(self.sem_classes))
+
+        PATH = f'model/segmentation/model_{model}.pth'
         if torch.cuda.is_available():
             self.model.load_state_dict(torch.load(PATH))
         else:

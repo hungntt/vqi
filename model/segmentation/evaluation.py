@@ -66,7 +66,11 @@ if __name__ == '__main__':
     category = 'tower_wooden'
 
     model = deeplabv3_resnet101(pretrained=False, num_classes=len(COCO_CLASSES))
-    model.load_state_dict(torch.load(PATH))
+    if torch.cuda.is_available():
+        model.load_state_dict(torch.load(PATH))
+    else:
+        model.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
+        
     model.eval()
 
     img = Image.open('data/images/3_00092.jpg')
