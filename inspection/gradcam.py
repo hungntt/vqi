@@ -22,9 +22,9 @@ class GradCamSegmentation:
 
         self.sem_class_to_idx = {cls: idx for (idx, cls) in enumerate(self.sem_classes)}
 
-        if model == 'ResNet101':
+        if model == 'resnet101':
             self.model = deeplabv3_resnet101(pretrained=False, num_classes=len(self.sem_classes))
-        elif model == 'ResNet50':
+        elif model == 'resnet50':
             self.model = deeplabv3_resnet50(pretrained=False, num_classes=len(self.sem_classes))
 
         PATH = f'model/segmentation/model_{model}.pth'
