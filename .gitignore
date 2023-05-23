@@ -12,3 +12,8 @@ data/.DS_Store
 coco.py
 static/.DS_Store
 model/segmentation/old_model.pth
+/old_data/
+/old_data/images/
+/old_data/labels/
+/old_data/test_images/
+/old_data/data_original_size_v1.zip
