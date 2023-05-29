@@ -19,6 +19,24 @@ COCO_LABEL_MAP = {cls: idx for (idx, cls) in enumerate(COCO_CLASSES)}
 PATH = 'model/segmentation/model_resnet101.pth'
 
 
+class SemanticSegmentationSoftmaxTarget:
+    """ Gets a binary spatial mask and a category,
+        And return the sum of the category scores,
+        of the pixels in the mask. """
+
+    def __init__(self, category, mask):
+        self.category = category
+        self.mask = torch.from_numpy(mask)
+        if torch.cuda.is_available():
+            self.mask = self.mask.cuda()
+
+    def __call__(self, model_output):
+        output_masked = torch.softmax(model_output, dim=-1)[self.category, :, :] * self.mask
+        # Remove 0 from the output_masked
+        output_masked = output_masked[output_masked != 0]
+        return output_masked.mean()
+
+
 # Showing the metrics on top of the CAM :
 def visualize_score(visualization, score, name, percentiles):
     visualization = cv2.putText(visualization, name, (10, 20),
@@ -34,27 +52,28 @@ def visualize_score(visualization, score, name, percentiles):
     return visualization
 
 
-def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False):
-    methods = [("GradCAM", GradCAM(model=model, target_layers=target_layers, use_cuda=True)),
-               ("GradCAM++", GradCAMPlusPlus(model=model, target_layers=target_layers, use_cuda=True)),
-               ("EigenGradCAM", EigenGradCAM(model=model, target_layers=target_layers, use_cuda=True)),
-               ("AblationCAM", AblationCAM(model=model, target_layers=target_layers, use_cuda=True)),
-               ("EigenCAM", EigenCAM(model=model, target_layers=target_layers, use_cuda=True)),
-               ("ScoreCAM", ScoreCAM(model=model, target_layers=target_layers, use_cuda=True)),
-               ("XGradCAM", XGradCAM(model=model, target_layers=target_layers, use_cuda=True)),
-               ("GradCAMElementWise", GradCAMElementWise(model=model, target_layers=target_layers, use_cuda=True)),
-               ("FullGrad", FullGrad(model=model, target_layers=target_layers, use_cuda=True)),
-               ("HiResCAM", HiResCAM(model=model, target_layers=target_layers, use_cuda=True)),
-               ]
-    cam_mult_metric = CamMultImageConfidenceChange()
+def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False, use_cuda=False):
+    methods = [
+        ("GradCAM", GradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("GradCAM++", GradCAMPlusPlus(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("EigenGradCAM", EigenGradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("AblationCAM", AblationCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("EigenCAM", EigenCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("ScoreCAM", ScoreCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("XGradCAM", XGradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("GradCAMElementWise", GradCAMElementWise(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("FullGrad", FullGrad(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("HiResCAM", HiResCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+    ]
+    # cam_mult_metric = CamMultImageConfidenceChange()
     drop_metric = DropInConfidence()
     increase_metric = IncreaseInConfidence()
     road_metric = ROADCombined(percentiles=[20, 40, 60, 80])
     targets = [SemanticSegmentationTarget(category_idx, mask_float)]
-    metric_targets = [SemanticSegmentationTarget(category_idx, mask_float)]
+    metric_targets = [SemanticSegmentationSoftmaxTarget(category_idx, mask_float)]
 
-    visualizations = []
-    percentiles = [10, 50, 90]
+    # visualizations = []
+    # percentiles = [10, 50, 90]
     for name, cam_method in methods:
         with cam_method:
             attributions = cam_method(input_tensor=input_tensor,
@@ -65,8 +84,8 @@ def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False)
         road_scores = road_metric(input_tensor, attributions, metric_targets, model)
         road_score = road_scores[0]
 
-        cam_mult_scores = cam_mult_metric(input_tensor, attributions, metric_targets, model)
-        cam_mult_score = cam_mult_scores[0]
+        # cam_mult_scores = cam_mult_metric(input_tensor, attributions, metric_targets, model)
+        # cam_mult_score = cam_mult_scores[0]
 
         drop_scores = drop_metric(input_tensor, attributions, metric_targets, model)
         drop_score = drop_scores[0]
@@ -74,7 +93,7 @@ def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False)
         increase_scores = increase_metric(input_tensor, attributions, metric_targets, model)
         increase_score = increase_scores[0]
 
-        print(f"{name} - Road: {road_score:.5f} - CamMult: {cam_mult_score:.5f} - "
+        print(f"{name} - Road: {road_score:.5f} - "
               f"Drop: {drop_score:.5f} - Increase: {increase_score:.5f}")
 
         # visualization = show_cam_on_image(rgb_img, attribution, use_rgb=True)
