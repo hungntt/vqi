@@ -12,7 +12,6 @@ from pytorch_grad_cam import GradCAM, GradCAMPlusPlus, EigenGradCAM, AblationCAM
 
 from model.segmentation.segmentation_output_wrapper import SegmentationModelOutputWrapper
 
-xai = "GradCAM"
 COCO_CLASSES = ['__background__', 'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden']
 
 COCO_LABEL_MAP = {cls: idx for (idx, cls) in enumerate(COCO_CLASSES)}
@@ -108,11 +107,15 @@ if __name__ == '__main__':
     model = deeplabv3_resnet50(pretrained=False, num_classes=len(COCO_CLASSES))
     if torch.cuda.is_available():
         model.load_state_dict(torch.load(PATH))
-        model = model.cuda()
     else:
         model.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
 
     model.eval()
+
+    if torch.cuda.is_available():
+        model = model.cuda()
+
+    model = SegmentationModelOutputWrapper(model)
 
     img = Image.open('data/images/3_00092.jpg')
     img = np.array(img)
@@ -121,9 +124,7 @@ if __name__ == '__main__':
 
     if torch.cuda.is_available():
         input_tensor = input_tensor.cuda()
-        model.cuda()
 
-    model = SegmentationModelOutputWrapper(model)
     output = model(input_tensor)
     normalized_masks = torch.nn.functional.softmax(output, dim=1).cpu()
     category_idx = COCO_LABEL_MAP[category]
