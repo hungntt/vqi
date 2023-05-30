@@ -37,18 +37,18 @@ class SemanticSegmentationSoftmaxTarget:
 
 
 # Showing the metrics on top of the CAM :
-def visualize_score(visualization, score, name, percentiles):
-    visualization = cv2.putText(visualization, name, (10, 20),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
-    visualization = cv2.putText(visualization, "(Least first - Most first)/2", (10, 40),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1, cv2.LINE_AA)
-    visualization = cv2.putText(visualization, f"Percentiles: {percentiles}", (10, 55),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
-    visualization = cv2.putText(visualization, "Remove and Debias", (10, 70),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
-    visualization = cv2.putText(visualization, f"{score:.5f}", (10, 85),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
-    return visualization
+# def visualize_score(visualization, score, name, percentiles):
+#     visualization = cv2.putText(visualization, name, (10, 20),
+#                                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+#     visualization = cv2.putText(visualization, "(Least first - Most first)/2", (10, 40),
+#                                 cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1, cv2.LINE_AA)
+#     visualization = cv2.putText(visualization, f"Percentiles: {percentiles}", (10, 55),
+#                                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+#     visualization = cv2.putText(visualization, "Remove and Debias", (10, 70),
+#                                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+#     visualization = cv2.putText(visualization, f"{score:.5f}", (10, 85),
+#                                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+#     return visualization
 
 
 def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False, use_cuda=True):
@@ -57,12 +57,12 @@ def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False,
         # ("GradCAM++", GradCAMPlusPlus(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         # ("EigenGradCAM", EigenGradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         ("AblationCAM", AblationCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        ("EigenCAM", EigenCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        ("ScoreCAM", ScoreCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        ("XGradCAM", XGradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        ("GradCAMElementWise", GradCAMElementWise(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        ("FullGrad", FullGrad(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        ("HiResCAM", HiResCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("EigenCAM", EigenCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("ScoreCAM", ScoreCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("XGradCAM", XGradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("GradCAMElementWise", GradCAMElementWise(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("FullGrad", FullGrad(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("HiResCAM", HiResCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
     ]
     # cam_mult_metric = CamMultImageConfidenceChange()
     drop_metric = DropInConfidence()
