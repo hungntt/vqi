@@ -52,11 +52,11 @@ def visualize_score(visualization, score, name, percentiles):
     return visualization
 
 
-def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False, use_cuda=False):
+def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False, use_cuda=True):
     methods = [
-        ("GradCAM", GradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        ("GradCAM++", GradCAMPlusPlus(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        ("EigenGradCAM", EigenGradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("GradCAM", GradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("GradCAM++", GradCAMPlusPlus(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("EigenGradCAM", EigenGradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         ("AblationCAM", AblationCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         ("EigenCAM", EigenCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         ("ScoreCAM", ScoreCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
@@ -109,6 +109,7 @@ if __name__ == '__main__':
     model = deeplabv3_resnet50(pretrained=False, num_classes=len(COCO_CLASSES))
     if torch.cuda.is_available():
         model.load_state_dict(torch.load(PATH))
+        model = model.cuda()
     else:
         model.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
 
