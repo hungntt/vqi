@@ -75,8 +75,7 @@ def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False,
     # percentiles = [10, 50, 90]
     for name, cam_method in methods:
         with cam_method:
-            attributions = cam_method(input_tensor=input_tensor,
-                                      targets=targets)
+            attributions = cam_method(input_tensor=input_tensor, targets=targets)[0, :]
         # attribution = attributions[0, :]
         print('Start calculating metrics')
         road_scores = road_metric(input_tensor, attributions, metric_targets, model)
