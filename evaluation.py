@@ -16,7 +16,7 @@ xai = "GradCAM"
 COCO_CLASSES = ['__background__', 'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden']
 
 COCO_LABEL_MAP = {cls: idx for (idx, cls) in enumerate(COCO_CLASSES)}
-PATH = 'model/segmentation/model_resnet101.pth'
+PATH = 'model/segmentation/model_ResNet50.pth'
 
 
 class SemanticSegmentationSoftmaxTarget:
@@ -81,6 +81,7 @@ def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False,
                                       eigen_smooth=eigen_smooth,
                                       aug_smooth=aug_smooth)
         # attribution = attributions[0, :]
+        print('Start calculating metrics')
         road_scores = road_metric(input_tensor, attributions, metric_targets, model)
         road_score = road_scores[0]
 
@@ -106,7 +107,7 @@ if __name__ == '__main__':
     np.random.seed(42)
     category = 'tower_wooden'
 
-    model = deeplabv3_resnet101(pretrained=False, num_classes=len(COCO_CLASSES))
+    model = deeplabv3_resnet50(pretrained=False, num_classes=len(COCO_CLASSES))
     if torch.cuda.is_available():
         model.load_state_dict(torch.load(PATH))
     else:
