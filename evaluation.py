@@ -78,8 +78,7 @@ def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False,
         with cam_method:
             attributions = cam_method(input_tensor=input_tensor,
                                       targets=targets,
-                                      eigen_smooth=eigen_smooth,
-                                      aug_smooth=aug_smooth)
+                                      use_cuda=torch.cuda.is_available())
         # attribution = attributions[0, :]
         print('Start calculating metrics')
         road_scores = road_metric(input_tensor, attributions, metric_targets, model)
