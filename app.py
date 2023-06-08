@@ -62,7 +62,8 @@ def index():
                 # Save the cam_image result to a file
                 cam_image.save(result_filepath)
                 segmentation_image.save(segment_filepath)
-                coco_image.save(coco_filepath)
+                if coco_image is not None:
+                    coco_image.save(coco_filepath)
             else:
                 coco_image = None
             processing_time = time.time() - start_time
