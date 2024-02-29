@@ -1,10 +1,12 @@
-torchvision~=0.15.1
-torch~=2.0.0+cu117
-numpy~=1.24.2
+torchvision~=0.16.0.dev20230520
+torch~=2.1.0.dev20230520
+numpy~=1.23.0
 pycocotools~=2.0.6
 pillow~=9.5.0
-flask~=2.2.3
-werkzeug~=2.2.3
+flask~=2.3.2
+werkzeug~=2.3.4
 requests~=2.28.2
 scikit-learn~=1.2.2
 grad-cam
+matplotlib~=3.7.1
+opencv-python~=4.7.0.72

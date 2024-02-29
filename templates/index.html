@@ -3,92 +3,15 @@
 <head>
     <meta charset="utf-8">
     <title>Visual Quality Inspection</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-        }
-
-        h1 {
-            text-align: center;
-            margin: 50px 0 30px;
-        }
-
-        form {
-            max-width: 500px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        label {
-            display: block;
-            margin-bottom: 10px;
-        }
-
-        select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-            margin-bottom: 20px;
-        }
-
-        input[type=file] {
-            margin-bottom: 20px;
-        }
-
-        button[type=submit] {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        button[type=submit]:hover {
-            background-color: #3e8e41;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 50px;
-        }
-
-        .loading p {
-            margin-top: 20px;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border-top: 3px solid #3498db;
-            border-right: 3px solid transparent;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
+    <div class="navbar">
+        <a href="#cvExplanation">CV Explanation</a>
+        <a href="#xaiEvaluation">XAI Evaluation</a>
+        <a href="#riskEvaluation">Risk Evaluation</a>
+        <a href="/improvement">Model Improvement</a>
+    </div>
     <h1>Visual Quality Inspection</h1>
     <form id="image-form" method="POST" enctype="multipart/form-data">
         {% include 'dropdown.html' %}

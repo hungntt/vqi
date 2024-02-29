@@ -1,14 +1,16 @@
 import os
 import time
 from flask import Flask, render_template, request
+
 from werkzeug.utils import secure_filename, redirect
 
-from inspection.gradcam import GradCamSegmentation
+from inspection.segmentation import SegmentationExplainer
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads/'
 app.config['LABEL_FOLDER'] = 'static/labels/'
-app.config['RESULT_FOLDER'] = 'static/results/'
+app.config['SEG_RES_FOLDER'] = 'static/results/'
+app.config['CLASS_RES_FOLDER'] = 'static/results/classification/'
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -41,44 +43,62 @@ def index():
             xai = request.form.get("explainable_ai")
             category = request.form.get("category")
 
-            result_filename = f'result_{xai}_{model}_{category}_{filename}'
-            result_filepath = os.path.join(app.config['RESULT_FOLDER'], result_filename)
+            if problem == 'classification':
+                result_filename = f'result_{xai}_{model}_{category}_{filename}'
+                result_filepath = os.path.join(app.config['CLASS_RES_FOLDER'], result_filename)
 
-            segment_filename = f'segment_{category}_{model}_{filename}'
-            segment_filepath = os.path.join(app.config['RESULT_FOLDER'], segment_filename)
+                if not os.path.isfile(result_filepath):
+                    explanation = ClassificationExplainer().explain(image_path=filepath)
 
-            coco_filename = f'coco_{category}_{model}_{filename}'
-            coco_filepath = os.path.join(app.config['RESULT_FOLDER'], coco_filename)
 
-            start_time = time.time()
-            # Process the image with the GradCamSegmentation class
-            # Check if result_filepath is available or not
-            if not os.path.isfile(result_filepath) or os.path.isfile(coco_filepath):
-                segmentation_image, cam_image, coco_image = \
-                    GradCamSegmentation(model=model).process_image(image_path=filepath,
+            elif problem == 'segmentation':
+                result_filename = f'result_{xai}_{model}_{category}_{filename}'
+                result_filepath = os.path.join(app.config['SEG_RES_FOLDER'], result_filename)
+
+                segment_filename = f'segment_{category}_{model}_{filename}'
+                segment_filepath = os.path.join(app.config['SEG_RES_FOLDER'], segment_filename)
+
+                coco_filename = f'coco_{category}_{model}_{filename}'
+                coco_filepath = os.path.join(app.config['SEG_RES_FOLDER'], coco_filename)
+
+                start_time = time.time()
+                # Process the image with the SegmentationExplainer class
+                # Check if result_filepath is available or not
+                if not os.path.isfile(result_filepath) or os.path.isfile(coco_filepath):
+                    segmentation_image, cam_image, coco_image = \
+                        SegmentationExplainer(model=model).explain(image_path=filepath,
                                                                    category=category,
                                                                    label_path=label_filepath,
                                                                    xai=xai)
-                # Save the cam_image result to a file
-                cam_image.save(result_filepath)
-                segmentation_image.save(segment_filepath)
-                if coco_image is not None:
-                    coco_image.save(coco_filepath)
-            else:
-                coco_image = None
-            processing_time = time.time() - start_time
-            print(f'Processing time: {processing_time}')
+                    # Save the cam_image result to a file
+                    cam_image.save(result_filepath)
+                    segmentation_image.save(segment_filepath)
+                    if coco_image is not None:
+                        coco_image.save(coco_filepath)
+                else:
+                    coco_image = None
+                processing_time = time.time() - start_time
+                print(f'Processing time: {processing_time}')
 
-            if coco_image is None:
-                return render_template('result.html', image=filepath, segmentation=segment_filepath,
-                                       result=result_filepath)
-            else:
-
-                return render_template('result.html', image=filepath, segmentation=segment_filepath,
-                                       result=result_filepath,
-                                       coco_image=coco_filepath)
+                if coco_image is None:
+                    return render_template('result.html', image=filepath, segmentation=segment_filepath,
+                                           result=result_filepath)
+                else:
+                    return render_template('result.html', image=filepath, segmentation=segment_filepath,
+                                           result=result_filepath,
+                                           coco_image=coco_filepath)
 
     return render_template('index.html')
+
+
+@app.route('/xai_eval', methods=['GET', 'POST'])
+def xai_eval():
+    return
+
+
+@app.route('/improvement', methods=['GET', 'POST'])
+def improvement():
+    return render_template('improvement.html')
 
 
 if __name__ == '__main__':

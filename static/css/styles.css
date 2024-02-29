@@ -1,0 +1,140 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    text-align: center;
+    margin: 50px 0 30px;
+}
+
+form {
+    max-width: 500px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+}
+
+input[type=file] {
+    margin-bottom: 20px;
+}
+
+button[type=submit] {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button[type=submit]:hover {
+    background-color: #3e8e41;
+}
+
+.loading {
+    display: none;
+    text-align: center;
+    margin-top: 50px;
+}
+
+.loading p {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border-top: 3px solid #3498db;
+    border-right: 3px solid transparent;
+    animation: spin 1s linear infinite;
+}
+
+/* Add these styles for the navigation bar */
+.navbar {
+    display: flex;
+    justify-content: space-evenly;
+    background-color: #333;
+    padding: 10px 0;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+}
+
+.navbar a:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 20px;
+    justify-items: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+}
+
+.box a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.box img {
+    width: 100px;
+    height: 100px;
+}
+
+.box h2 {
+    margin: 20px 0;
+}
+
+.box p {
+    margin: 0;
+}

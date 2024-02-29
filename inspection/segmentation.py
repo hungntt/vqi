@@ -1,20 +1,18 @@
 import json
 
+import cv2
 import numpy as np
-import requests
 from PIL import Image, ImageDraw
 import torch
-from matplotlib import patches, pyplot as plt
 from pytorch_grad_cam import *
 from pytorch_grad_cam.utils.image import preprocess_image, show_cam_on_image
 from torchvision.models.segmentation import deeplabv3_resnet50, deeplabv3_resnet101
-import cv2
 
 from model.segmentation.segmentation_output_wrapper import SegmentationModelOutputWrapper
 from model.segmentation.semantic_segmentation_target import SemanticSegmentationTarget
 
 
-class GradCamSegmentation:
+class SegmentationExplainer:
     def __init__(self, model='ResNet101'):
         self.sem_classes = [
             '__background__', 'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden'
@@ -39,7 +37,7 @@ class GradCamSegmentation:
 
         self.model = SegmentationModelOutputWrapper(self.model)
 
-    def process_image(self, image_path, label_path, category="tower_wooden", xai="GradCAM"):
+    def explain(self, image_path, label_path, category, xai):
         orig_image = Image.open(image_path)
         image = np.array(orig_image)
 
@@ -50,6 +48,7 @@ class GradCamSegmentation:
         if torch.cuda.is_available():
             input_tensor = input_tensor.cuda()
 
+        # ======== Label ========
         if label_path is not None:
             with open(label_path, 'r') as f:
                 data = json.load(f)
@@ -58,17 +57,18 @@ class GradCamSegmentation:
 
             draw = ImageDraw.Draw(mask)
             for shape in data['shapes']:
-                points = [(p[0], p[1]) for p in shape['points']]
-                try:
-                    draw.polygon(points, fill=tuple(shape['fill_color']), outline=tuple(shape['line_color']))
-                except TypeError:
-                    # fill red color if no fill color is specified
-                    draw.polygon(points, fill=(255, 0, 0, 255), outline=(0, 255, 0, 255))
-                # Add the label name to the annotation
-                try:
-                    draw.text(points[0], shape['label'], fill=tuple(shape['fill_color']), align='center')
-                except TypeError:
-                    draw.text(points[0], shape['label'], fill=(255, 0, 0, 255), align='center')
+                if shape['label'] == category:
+                    points = [(p[0], p[1]) for p in shape['points']]
+                    try:
+                        draw.polygon(points, fill=tuple(shape['fill_color']), outline=tuple(shape['line_color']))
+                    except TypeError:
+                        # fill red color if no fill color is specified
+                        draw.polygon(points, fill=(255, 0, 0, 255), outline=(0, 255, 0, 255))
+                    # Add the label name to the annotation
+                    try:
+                        draw.text(points[0], shape['label'], fill=tuple(shape['fill_color']), align='center')
+                    except TypeError:
+                        draw.text(points[0], shape['label'], fill=(255, 0, 0, 255), align='center')
 
             # Combine the image and the segmentation mask
             result = Image.alpha_composite(orig_image.convert('RGBA'), mask)

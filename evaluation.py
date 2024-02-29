@@ -19,9 +19,9 @@ PATH = 'model/segmentation/model_ResNet50.pth'
 
 
 class SemanticSegmentationSoftmaxTarget:
-    """ Gets a binary spatial mask and a category,
-        And return the sum of the category scores,
-        of the pixels in the mask. """
+    """
+    Return the softmax output of the model for the given category as a target for explanation
+    """
 
     def __init__(self, category, mask):
         self.category = category
@@ -56,9 +56,9 @@ def benchmark(input_tensor, target_layers, eigen_smooth=False, aug_smooth=False,
         # ("GradCAM", GradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         # ("GradCAM++", GradCAMPlusPlus(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         # ("EigenGradCAM", EigenGradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        ("AblationCAM", AblationCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        # ("AblationCAM", AblationCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         # ("EigenCAM", EigenCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
-        # ("ScoreCAM", ScoreCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
+        ("ScoreCAM", ScoreCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         # ("XGradCAM", XGradCAM(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         # ("GradCAMElementWise", GradCAMElementWise(model=model, target_layers=target_layers, use_cuda=use_cuda)),
         # ("FullGrad", FullGrad(model=model, target_layers=target_layers, use_cuda=use_cuda)),
