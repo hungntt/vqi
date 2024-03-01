@@ -13,8 +13,12 @@ from tqdm import tqdm
 
 from model.segmentation.segmentation_output_wrapper import SegmentationModelOutputWrapper
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 MOBILE = True
+if torch.cuda.is_available() and not MOBILE:
+    DEVICE = 'cuda'
+else:
+    DEVICE = 'cpu'
+
 
 sem_classes = ['__background__', 'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden']
 model = torch.hub.load('pytorch/vision:v0.11.0', 'deeplabv3_resnet50', pretrained=False,
@@ -22,7 +26,7 @@ model = torch.hub.load('pytorch/vision:v0.11.0', 'deeplabv3_resnet50', pretraine
 
 PATH = f'model/segmentation/model_ResNet50.pth'
 
-if torch.cuda.is_available():
+if torch.cuda.is_available() and not MOBILE:
     model.load_state_dict(torch.load(PATH))
 else:
     model.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
@@ -45,7 +49,7 @@ input_tensor = preprocess(input_image)
 input_batch = input_tensor.unsqueeze(0)  # create a mini-batch as expected by the model
 
 # move the input and model to GPU for speed if available
-if torch.cuda.is_available():
+if torch.cuda.is_available() and not MOBILE:
     input_batch = input_batch.to('cuda')
     model.to('cuda')
 
