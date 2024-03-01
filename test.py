@@ -1,33 +1,38 @@
-from torch.utils.mobile_optimizer import optimize_for_mobile
-from pytorch_grad_cam.utils.image import show_cam_on_image
-from tqdm import tqdm
-import numpy as np
-import torch.nn.functional as F
-import cv2
-import torch
-from torchvision import transforms
 import urllib
-from PIL import Image
-from torchvision import transforms
+
+import cv2
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torch.nn.functional as F
+from PIL import Image
+from pytorch_grad_cam.utils.image import show_cam_on_image
+from torch.utils.mobile_optimizer import optimize_for_mobile
+from torchvision import transforms
+from tqdm import tqdm
 
 from model.segmentation.segmentation_output_wrapper import SegmentationModelOutputWrapper
 
-model = torch.hub.load('pytorch/vision:v0.11.0', 'deeplabv3_resnet50', pretrained=True)
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+MOBILE = True
+
+sem_classes = ['__background__', 'cable', 'tower_lattice', 'tower_tucohy', 'tower_wooden']
+model = torch.hub.load('pytorch/vision:v0.11.0', 'deeplabv3_resnet50', pretrained=False,
+                       num_classes=len(sem_classes))
+
+PATH = f'model/segmentation/model_ResNet50.pth'
+
+if torch.cuda.is_available():
+    model.load_state_dict(torch.load(PATH))
+else:
+    model.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
+
+if MOBILE:
+    model = optimize_for_mobile(torch.jit.script(model)).eval()
+
 model = SegmentationModelOutputWrapper(model)
-model.eval()
 
-scripted_module = torch.jit.script(model)
-optimized_model = optimize_for_mobile(scripted_module)
-optimized_model.eval()
-model = optimized_model
-model = model.eval()
-
-url, filename = ("https://github.com/pytorch/hub/raw/master/images/deeplab1.png", "deeplab1.png")
-try:
-    urllib.URLopener().retrieve(url, filename)
-except:
-    urllib.request.urlretrieve(url, filename)
+filename = 'data/images/3_00092.jpg'
 
 input_image = Image.open(filename)
 input_image = input_image.convert("RGB")
@@ -72,7 +77,7 @@ def generate_masks(n_masks, input_size, p1=0.1, initial_mask_size=(7, 7), binary
         # upsampling mask
         if binary:
             mask = F.interpolate(
-                binary_mask, (resize_h, resize_w), mode='nearest')  # , align_corners=False)
+                binary_mask, (resize_h, resize_w), mode='nearest')
         else:
             mask = F.interpolate(
                 binary_mask, (resize_h, resize_w), mode='bilinear', align_corners=False)
@@ -155,6 +160,7 @@ def rise_aggregated(image, masks, coef, fig_name=None, vis=True):
     overlaid = show_cam_on_image(image / 255, aggregated_mask / 255, use_rgb=True)
 
     title = 'RISE'
+    title += ' (Mobile)' if MOBILE else ''
 
     plt.figure()
     plt.subplot(1, 3, 1)
@@ -206,7 +212,104 @@ def vis_predict(image, model, preprocess_transform, DEVICE='cpu', mask=None, box
     return image, output, rect_image
 
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+def utility_dilation(image, model, preprocess_transform, target=None, box=None, DEVICE='cpu', vis=True):
+    if preprocess_transform is None:
+        input_tensor = image.clone()
+        image = image.permute(1, 2, 0).numpy()
+        max_, min_ = image.max(), image.min()
+        image = np.uint8(255 * (image - min_) / (max_ - min_))
+    else:
+        input_tensor = preprocess_transform(image)
+
+    output = model(input_tensor.unsqueeze(0).to(DEVICE))
+
+    if box is None:
+        y_start, y_end, x_start, x_end = 0, image.shape[0], 0, image.shape[1]
+    else:
+        y_start, y_end, x_start, x_end = box[0], box[1], box[2], box[3]
+
+    if target is None:
+        target = output[0].argmax(0).max().item()
+
+    mask = output[0].argmax(0).detach().cpu().numpy()
+    mask_uint8 = 255 * np.uint8(mask == target)
+    mask_float = np.float32(mask == target)
+    mask_mask = np.zeros(mask_float.shape)
+    mask_mask[y_start:y_end, x_start:x_end] = 1
+    mask_float = mask_float * mask_mask
+    mask_uint8 = np.uint8(mask_uint8 * mask_mask)
+
+    plt.figure()
+    plt.subplot(1, 2, 1)
+    plt.imshow(image)
+    plt.subplot(1, 2, 2)
+    plt.imshow(np.repeat(mask_uint8[:, :, None], 3, axis=-1))
+    if vis is True:
+        plt.show()
+    plt.close()
+
+    return image, mask_float
+
+
+def dc(result, reference, label):
+    result = result == label
+    reference = reference == label
+    # result = np.atleast_1d(result.astype(np.bool))
+    # reference = np.atleast_1d(reference.astype(np.bool))
+    intersection = np.count_nonzero(result & reference)
+    size_i1 = np.count_nonzero(result)
+    size_i2 = np.count_nonzero(reference)
+    dc = 2. * intersection / float(size_i1 + size_i2)
+    return dc
+
+
+def dilation(image, model, preprocess_transform, target=None, box=None, DEVICE='cpu',
+             mask=None, kernel_size=5, threshold=0.2, iterations=100, original_prediction=None, skip_vis=10):
+    dil_mask = mask.copy()
+    dil_mask[dil_mask < threshold] = 0
+    dil_mask[dil_mask > threshold] = 1
+    images, masks = [], []
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+    for i in range(0, iterations):
+        dil_mask = cv2.dilate(dil_mask.astype(np.uint8), kernel, iterations=i)
+        if image.shape[0] <= 3:
+            im = image * dil_mask[None, :, :]
+        else:
+            im = image * dil_mask[:, :, None]
+        if i % skip_vis == 0:
+            vis = True
+        else:
+            vis = False
+        im_iter, mask_iter = utility_dilation(image=im, model=model, preprocess_transform=
+        preprocess_transform, target=target, box=box,
+                                              DEVICE=DEVICE, vis=vis)
+        images.append(im_iter)
+        masks.append(mask_iter)
+
+    if box is None:
+        if image.shape[0] <= 3:
+            y_start, y_end, x_start, x_end = 0, image.shape[1], 0, image.shape[2]
+        else:
+            y_start, y_end, x_start, x_end = 0, image.shape[0], 0, image.shape[1]
+    else:
+        y_start, y_end, x_start, x_end = box[0], box[1], box[2], box[3]
+
+    mask_float = np.float32(original_prediction == target)
+    mask_mask = np.zeros(mask_float.shape)
+    print(y_start, y_end, x_start, x_end)
+    mask_mask[y_start:y_end, x_start:x_end] = 1
+    mask_float = mask_float * mask_mask
+
+    a = []
+    for i in masks:
+        print(dc(mask_float, i, 1))
+        a.append(dc(mask_float, i, 1))
+
+    plt.figure()
+    plt.scatter(range(len(a)), a)
+
+    return images, masks, a
+
 
 preprocess_transform = transforms.Compose([
     transforms.ToTensor(),
@@ -215,21 +318,18 @@ preprocess_transform = transforms.Compose([
 # np.array image
 np_input_image = np.array(input_image)
 
-n_masks, p1, window_size = 10, 0.1, (7, 7)
+n_masks, p1, window_size = 500, 0.1, (7, 7)
 input_size = np_input_image.shape
 pool_sizes, pool_modes, reshape_transformer = [0, 1, 2], [None, np.mean, np.mean], False
 fig_size = (30, 50)
 vis, vis_base, vis_rise, grid = False, False, True, True
 preprocess_transform = preprocess_transform
 initial_mask_size = (7, 7)
-vis_skip = 20
+vis_skip = 500
 target = 3
 y_start, y_end, x_start, x_end = 150, 320, 450, 630
 
 box = (y_start, y_end, x_start, x_end)
-
-target = 3
-y_start, y_end, x_start, x_end = 150, 320, 450, 630
 
 im, pred, rect = vis_predict(np_input_image, model, preprocess_transform=preprocess_transform,
                              DEVICE=DEVICE, mask=None, box=box, vis=vis)
@@ -243,3 +343,15 @@ coef = rise_segmentation(masks, np_input_image, model, preprocess_transform=prep
 mask, overlay = rise_aggregated(np_input_image, masks, coef, vis=vis_rise)
 results.append(overlay)
 results_masks.append(mask)
+
+for i in range(len(results)):
+    plt.subplot(1, len(results), i + 1)
+    plt.imshow(results[i])
+    if not grid:
+        plt.axis('off')
+
+ims_med, masks_med, dice_med = dilation(np_input_image, model, preprocess_transform, target=target, box=box,
+                                        DEVICE=DEVICE,
+                                        mask=results_masks[-2], kernel_size=5, threshold=0.2, iterations=10,
+                                        original_prediction=results[1],
+                                        skip_vis=2)
